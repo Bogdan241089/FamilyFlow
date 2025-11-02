@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Очистка Service Worker</title>
+</head>
+<body>
+    <h1>Очистка кэша...</h1>
+    <p id="status">Подождите...</p>
+    
+    <script>
+        async function clearServiceWorkers() {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (let registration of registrations) {
+                    await registration.unregister();
+                }
+            }
+            
+            // Очистка кэша
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                await Promise.all(
+                    cacheNames.map(cacheName => caches.delete(cacheName))
+                );
+            }
+            
+            document.getElementById('status').innerHTML = 
+                '<strong style="color: green;">Готово! Теперь откройте <a href="/">главную страницу</a></strong>';
+        }
+        
+        clearServiceWorkers();
+    </script>
+</body>
+</html>

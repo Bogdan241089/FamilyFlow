@@ -1,0 +1,49 @@
+.shopping-container {
+  padding: 2rem;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.09);
+  max-width: 650px;
+  margin: 2rem auto;
+  text-align: center;
+  animation: fadeInUp 0.8s;
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.shopping-container form {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+.shopping-container input {
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+.shopping-container button {
+  background: #4caf50;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1.5rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+.shopping-container button:hover {
+  background: #388e3c;
+}
+.shopping-container ul {
+  list-style: none;
+  padding: 0;
+}
+.shopping-container li {
+  margin-bottom: 1rem;
+  background: #f7f8fa;
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  animation: fadeInUp 0.7s;
+}

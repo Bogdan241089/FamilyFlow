@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Очистка кэша FamilyFlow</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial; text-align: center; padding: 50px; }
+        .status { font-size: 18px; margin: 20px 0; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>🧹 Очистка кэша FamilyFlow</h1>
+    <div id="status" class="status">Очистка...</div>
+    
+    <script>
+        async function clearAll() {
+            const status = document.getElementById('status');
+            
+            try {
+                // Очистка Service Workers
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                    }
+                }
+                
+                // Очистка кэша
+                if ('caches' in window) {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(
+                        cacheNames.map(cacheName => caches.delete(cacheName))
+                    );
+                }
+                
+                // Очистка localStorage
+                localStorage.clear();
+                sessionStorage.clear();
+                
+                status.innerHTML = '✅ Кэш очищен! Закройте эту вкладку и откройте <a href="/">главную страницу</a>';
+                status.className = 'status success';
+                
+            } catch (error) {
+                status.innerHTML = '❌ Ошибка: ' + error.message;
+                status.className = 'status error';
+            }
+        }
+        
+        clearAll();
+    </script>
+</body>
+</html>

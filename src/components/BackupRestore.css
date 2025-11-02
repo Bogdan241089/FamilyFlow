@@ -1,0 +1,56 @@
+.backup-restore {
+  background: var(--bg-secondary);
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-top: 2rem;
+}
+
+.backup-restore h3 {
+  margin: 0 0 1rem 0;
+  color: var(--text-primary);
+}
+
+.backup-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.backup-actions button,
+.import-btn {
+  padding: 0.75rem 1.5rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.backup-actions button:hover,
+.import-btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+.backup-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.import-btn input {
+  display: none;
+}
+
+.backup-message {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #e8f5e9;
+  color: #2e7d32;
+  border-radius: 6px;
+  font-weight: 500;
+}

@@ -1,0 +1,17 @@
+{
+  "appId": "com.familyflow.app",
+  "appName": "FamilyFlow",
+  "webDir": "build",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#4CAF50",
+      "showSpinner": true,
+      "spinnerColor": "#ffffff"
+    }
+  }
+}
