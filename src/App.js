@@ -297,6 +297,10 @@ function Dashboard() {
           <h3>🤖 AI Помощник</h3>
           <p>Умный помощник для задач</p>
         </Link>
+        <Link to="/family" className="card" style={{textDecoration: 'none', color: 'inherit'}}>
+          <h3>👨‍👩‍👧‍👦 Семья</h3>
+          <p>Управление семьёй</p>
+        </Link>
       </div>
       
       {/* Виджеты */}
@@ -1165,10 +1169,11 @@ function FamilyPage() {
   const addMember = (e) => {
     e.preventDefault();
     if (!newMemberName.trim()) return;
+    const selectedRole = document.getElementById('memberRole').value;
     const newMember = {
       id: Date.now(),
       name: newMemberName,
-      role: 'child',
+      role: selectedRole,
       joinedAt: new Date().toISOString()
     };
     const updatedMembers = [...members, newMember];
@@ -1208,16 +1213,23 @@ function FamilyPage() {
           
           <div className="card" style={{marginBottom: '20px'}}>
             <h3>Добавить участника</h3>
-            <form onSubmit={addMember} style={{display: 'flex', gap: '10px'}}>
-              <input
-                type="text"
-                placeholder="Имя участника"
-                value={newMemberName}
-                onChange={(e) => setNewMemberName(e.target.value)}
-                className="form-input"
-                style={{flex: 1}}
-              />
-              <button type="submit" className="btn btn-primary" style={{width: 'auto', padding: '12px 20px'}}>Добавить</button>
+            <form onSubmit={addMember}>
+              <div style={{display: 'flex', gap: '10px', marginBottom: '10px'}}>
+                <input
+                  type="text"
+                  placeholder="Имя участника"
+                  value={newMemberName}
+                  onChange={(e) => setNewMemberName(e.target.value)}
+                  className="form-input"
+                  style={{flex: 1}}
+                />
+                <select className="form-input" style={{width: '120px'}} id="memberRole">
+                  <option value="child">👶 Ребёнок</option>
+                  <option value="parent">👨 Родитель</option>
+                  <option value="grandparent">👴 Бабушка/Дедушка</option>
+                </select>
+                <button type="submit" className="btn btn-primary" style={{width: 'auto', padding: '12px 20px'}}>Добавить</button>
+              </div>
             </form>
           </div>
           
@@ -1239,7 +1251,8 @@ function FamilyPage() {
                   <div>
                     <div style={{fontWeight: 'bold'}}>{member.name}</div>
                     <div style={{fontSize: '14px', color: 'var(--text-secondary)'}}>
-                      {member.role === 'parent' ? 'Родитель' : 'Ребёнок'}
+                      {member.role === 'parent' ? '👨 Родитель' : 
+                       member.role === 'grandparent' ? '👴 Бабушка/Дедушка' : '👶 Ребёнок'}
                       {member.email && ` • ${member.email}`}
                     </div>
                   </div>
