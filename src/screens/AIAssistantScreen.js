@@ -6,6 +6,7 @@ import { getProfile } from '../services/profileService';
 import { db } from '../firebase/config';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
 import Spinner from '../components/Spinner';
+import Toast from '../components/Toast';
 
 function AIAssistantScreen() {
   const { currentUser } = useAuth();
@@ -37,14 +38,16 @@ function AIAssistantScreen() {
     try {
       const profile = await getProfile(currentUser.uid);
       const familyId = profile?.defaultFamilyId;
-      if (familyId) {
-        const tasksSnap = await getDocs(collection(db, `families/${familyId}/tasks`));
-        const tasks = [];
-        tasksSnap.forEach(doc => tasks.push(doc.data()));
-        const suggestions = await suggestTasks({ tasksCount: tasks.length, completedCount: tasks.filter(t => t.done).length });
-        setResult(suggestions);
-        setToast({ message: 'ИИ предложил задачи!', type: 'success' });
+      if (!familyId) {
+        setToast({ message: 'Семья не найдена', type: 'error' });
+        return;
       }
+      const tasksSnap = await getDocs(collection(db, `families/${familyId}/tasks`));
+      const tasks = [];
+      tasksSnap.forEach(doc => tasks.push(doc.data()));
+      const suggestions = await suggestTasks({ tasksCount: tasks.length, completedCount: tasks.filter(t => t.done).length });
+      setResult(suggestions);
+      setToast({ message: 'ИИ предложил задачи!', type: 'success' });
     } catch (error) {
       setToast({ message: 'Ошибка ИИ', type: 'error' });
     } finally {
@@ -57,14 +60,16 @@ function AIAssistantScreen() {
     try {
       const profile = await getProfile(currentUser.uid);
       const familyId = profile?.defaultFamilyId;
-      if (familyId) {
-        const tasksSnap = await getDocs(collection(db, `families/${familyId}/tasks`));
-        const tasks = [];
-        tasksSnap.forEach(doc => tasks.push(doc.data()));
-        const analysis = await analyzeProductivity(tasks);
-        setResult(analysis);
-        setToast({ message: 'Анализ готов!', type: 'success' });
+      if (!familyId) {
+        setToast({ message: 'Семья не найдена', type: 'error' });
+        return;
       }
+      const tasksSnap = await getDocs(collection(db, `families/${familyId}/tasks`));
+      const tasks = [];
+      tasksSnap.forEach(doc => tasks.push(doc.data()));
+      const analysis = await analyzeProductivity(tasks);
+      setResult(analysis);
+      setToast({ message: 'Анализ готов!', type: 'success' });
     } catch (error) {
       setToast({ message: 'Ошибка ИИ', type: 'error' });
     } finally {
