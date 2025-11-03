@@ -1,0 +1,1 @@
+Fix Gemini API - use stable v1 endpoint with gemini-pro model
