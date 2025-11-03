@@ -1,0 +1,5 @@
+Family management improvements - $(Get-Date)
+- Show current family info
+- Allow creating new family
+- Better member management
+- QR codes and invite links
