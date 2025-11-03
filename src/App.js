@@ -1224,13 +1224,18 @@ function FamilyPage() {
   const [familyName, setFamilyName] = useState(localStorage.getItem('familyflow_family_name') || '');
   const [members, setMembers] = useState(JSON.parse(localStorage.getItem('familyflow_members') || '[]'));
   const [newMemberName, setNewMemberName] = useState('');
-  const [showCreateFamily, setShowCreateFamily] = useState(!familyName);
+  const [showCreateFamily, setShowCreateFamily] = useState(false);
+  const [newFamilyName, setNewFamilyName] = useState('');
+  
+  const currentUser = LocalAuth.currentUser;
+  const userInFamily = members.find(m => m.id === currentUser?.id || m.email === currentUser?.email);
 
   const createFamily = (e) => {
     e.preventDefault();
-    if (!familyName.trim()) return;
-    localStorage.setItem('familyflow_family_name', familyName);
-    const currentUser = LocalAuth.currentUser;
+    if (!newFamilyName.trim()) return;
+    
+    // Создаём новую семью
+    localStorage.setItem('familyflow_family_name', newFamilyName);
     const initialMembers = [{
       id: currentUser.id,
       name: currentUser.name,
@@ -1239,9 +1244,23 @@ function FamilyPage() {
       joinedAt: new Date().toISOString(),
       status: 'active'
     }];
+    
+    setFamilyName(newFamilyName);
     setMembers(initialMembers);
     localStorage.setItem('familyflow_members', JSON.stringify(initialMembers));
     setShowCreateFamily(false);
+    setNewFamilyName('');
+    alert(`🎉 Семья "${newFamilyName}" создана!`);
+  };
+  
+  const leaveFamily = () => {
+    if (confirm('Покинуть текущую семью? Вы потеряете доступ к общим данным.')) {
+      localStorage.removeItem('familyflow_family_name');
+      localStorage.removeItem('familyflow_members');
+      setFamilyName('');
+      setMembers([]);
+      alert('Вы покинули семью');
+    }
   };
 
   const addMember = (e) => {
@@ -1270,26 +1289,32 @@ function FamilyPage() {
         <Link to="/dashboard" className="btn btn-secondary">← Назад</Link>
       </div>
       
-      {showCreateFamily ? (
-        <div className="card">
-          <h3>Создать семью</h3>
-          <form onSubmit={createFamily}>
-            <input
-              type="text"
-              placeholder="Название семьи"
-              value={familyName}
-              onChange={(e) => setFamilyName(e.target.value)}
-              className="form-input"
-              style={{marginBottom: '15px'}}
-            />
-            <button type="submit" className="btn btn-primary">Создать семью</button>
-          </form>
-        </div>
-      ) : (
+      {familyName && userInFamily ? (
+        <>
         <>
           <div className="card" style={{marginBottom: '20px'}}>
-            <h3>Семья: {familyName}</h3>
-            <p>Участников: {members.length}</p>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+              <div>
+                <h3>🏠 Семья: {familyName}</h3>
+                <p>Участников: {members.length} • Ваша роль: {userInFamily?.role === 'parent' ? '👨 Родитель' : userInFamily?.role === 'grandparent' ? '👴 Бабушка/Дедушка' : '👶 Ребёнок'}</p>
+              </div>
+              <div style={{display: 'flex', gap: '10px'}}>
+                <button 
+                  onClick={() => setShowCreateFamily(true)}
+                  className="btn btn-secondary"
+                  style={{width: 'auto', padding: '8px 12px', fontSize: '14px'}}
+                >
+                  🎆 Создать новую
+                </button>
+                <button 
+                  onClick={leaveFamily}
+                  className="btn btn-secondary"
+                  style={{width: 'auto', padding: '8px 12px', fontSize: '14px', background: 'var(--error)'}}
+                >
+                  🚪 Покинуть
+                </button>
+              </div>
+            </div>
           </div>
           
           <div className="card" style={{marginBottom: '20px'}}>
@@ -1375,6 +1400,58 @@ function FamilyPage() {
             )}
           </div>
         </>
+      ) : (
+        <div className="card" style={{textAlign: 'center', padding: '40px'}}>
+          <h3>👥 У вас ещё нет семьи</h3>
+          <p style={{color: 'var(--text-secondary)', marginBottom: '20px'}}>
+            Создайте семью или попросите приглашение
+          </p>
+          <button 
+            onClick={() => setShowCreateFamily(true)}
+            className="btn btn-primary"
+            style={{width: 'auto', padding: '12px 24px'}}
+          >
+            🎆 Создать семью
+          </button>
+        </div>
+      )}
+      
+      {/* Модальное окно создания семьи */}
+      {showCreateFamily && (
+        <div className="search-overlay" onClick={() => setShowCreateFamily(false)}>
+          <div className="search-box" onClick={e => e.stopPropagation()}>
+            <h3>🎆 Создать новую семью</h3>
+            {familyName && (
+              <p style={{color: 'var(--warning)', fontSize: '14px', marginBottom: '15px'}}>
+                ⚠️ Вы покинете текущую семью "{familyName}"
+              </p>
+            )}
+            <form onSubmit={createFamily}>
+              <input
+                type="text"
+                placeholder="Название новой семьи"
+                value={newFamilyName}
+                onChange={(e) => setNewFamilyName(e.target.value)}
+                className="form-input"
+                autoFocus
+                style={{marginBottom: '15px'}}
+              />
+              <div style={{display: 'flex', gap: '10px'}}>
+                <button type="submit" className="btn btn-primary" style={{flex: 1}}>
+                  Создать
+                </button>
+                <button 
+                  type="button" 
+                  onClick={() => setShowCreateFamily(false)} 
+                  className="btn btn-secondary" 
+                  style={{flex: 1}}
+                >
+                  Отмена
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );
