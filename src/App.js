@@ -1291,7 +1291,6 @@ function FamilyPage() {
       
       {familyName && userInFamily ? (
         <>
-        <>
           <div className="card" style={{marginBottom: '20px'}}>
             <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
               <div>
