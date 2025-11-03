@@ -9,6 +9,30 @@ import ThemeToggle from '../components/ThemeToggle';
 import InviteQRCode from '../components/InviteQRCode';
 import AvatarUpload from '../components/AvatarUpload';
 
+// Простой Toast компонент
+function Toast({ message, type, onClose }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 3000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: '20px',
+      right: '20px',
+      background: type === 'error' ? '#f44336' : '#4caf50',
+      color: 'white',
+      padding: '1rem',
+      borderRadius: '4px',
+      zIndex: 1000,
+      cursor: 'pointer'
+    }} onClick={onClose}>
+      {message}
+    </div>
+  );
+}
+
 function FamilyScreen() {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
