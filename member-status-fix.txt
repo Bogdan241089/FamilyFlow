@@ -1,0 +1,5 @@
+Member status and email improvements:
+- Fix member status update after registration
+- Allow registration without email (optional)
+- Show guest status for users without email
+- Update existing member when joining via invite

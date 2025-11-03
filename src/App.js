@@ -8,13 +8,16 @@ const LocalAuth = {
   currentUser: JSON.parse(localStorage.getItem('familyflow_current_user') || 'null'),
   
   register(email, password, name) {
-    if (this.users.find(u => u.email === email)) {
+    // Если email не указан, генерируем уникальный ID
+    const userEmail = email || `user_${Date.now()}@familyflow.local`;
+    
+    if (this.users.find(u => u.email === userEmail)) {
       throw new Error('Пользователь уже существует');
     }
-    const user = { id: Date.now(), email, password, name };
+    const user = { id: Date.now(), email: userEmail, password, name, isGuest: !email };
     this.users.push(user);
     localStorage.setItem('familyflow_users', JSON.stringify(this.users));
-    this.login(email, password);
+    this.login(userEmail, password);
     return user;
   },
   
@@ -186,11 +189,10 @@ function RegisterPage() {
           <div className="form-group">
             <input 
               type="email" 
-              placeholder="Email" 
+              placeholder="Email (необязательно)" 
               value={email} 
               onChange={(e) => setEmail(e.target.value)}
               className="form-input"
-              required
             />
           </div>
           <div className="form-group">
@@ -227,15 +229,33 @@ function Dashboard() {
       // Присоединяем к семье
       localStorage.setItem('familyflow_family_name', decodeURIComponent(inviteInfo.familyName));
       const members = JSON.parse(localStorage.getItem('familyflow_members') || '[]');
-      const newMember = {
-        id: currentUser.id,
-        name: currentUser.name,
-        email: currentUser.email,
-        role: inviteInfo.role,
-        joinedAt: new Date().toISOString(),
-        status: 'active'
-      };
-      members.push(newMember);
+      
+      // Обновляем статус существующего участника или добавляем нового
+      const existingMemberIndex = members.findIndex(m => m.id == inviteInfo.inviteId);
+      
+      if (existingMemberIndex !== -1) {
+        // Обновляем существующего участника
+        members[existingMemberIndex] = {
+          ...members[existingMemberIndex],
+          id: currentUser.id,
+          name: currentUser.name,
+          email: currentUser.email,
+          status: 'active',
+          joinedAt: new Date().toISOString()
+        };
+      } else {
+        // Добавляем нового участника
+        const newMember = {
+          id: currentUser.id,
+          name: currentUser.name,
+          email: currentUser.email,
+          role: inviteInfo.role,
+          joinedAt: new Date().toISOString(),
+          status: 'active'
+        };
+        members.push(newMember);
+      }
+      
       localStorage.setItem('familyflow_members', JSON.stringify(members));
       localStorage.removeItem('familyflow_pending_invite');
       
@@ -1356,8 +1376,9 @@ function FamilyPage() {
                       <div style={{fontSize: '14px', color: 'var(--text-secondary)'}}>
                         {member.role === 'parent' ? '👨 Родитель' : 
                          member.role === 'grandparent' ? '👴 Бабушка/Дедушка' : '👶 Ребёнок'}
-                        {member.email && ` • ${member.email}`}
+                        {member.email && !member.email.includes('@familyflow.local') && ` • ${member.email}`}
                         {member.status === 'pending' && <span style={{color: 'var(--warning)', marginLeft: '10px'}}>⏳ Ожидает приглашения</span>}
+                        {member.status === 'active' && member.email && member.email.includes('@familyflow.local') && <span style={{color: 'var(--success)', marginLeft: '10px'}}>👥 Гость</span>}
                       </div>
                     </div>
                     {member.id === LocalAuth.currentUser?.id && (
