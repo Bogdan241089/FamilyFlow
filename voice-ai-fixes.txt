@@ -1,0 +1,6 @@
+Voice commands and AI assistant improvements:
+- Fix voice recognition error handling
+- Add microphone permission check
+- Improve AI assistant with local tips
+- Better error messages for voice input
+- Fallback responses when API key not available
