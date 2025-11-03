@@ -35,12 +35,38 @@ const LocalAuth = {
 };
 
 function WelcomePage() {
+  const [inviteInfo, setInviteInfo] = useState(null);
+  
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const inviteId = urlParams.get('invite');
+    const familyName = urlParams.get('family');
+    const role = urlParams.get('role');
+    
+    if (inviteId && familyName) {
+      setInviteInfo({ inviteId, familyName, role });
+    }
+  }, []);
+  
   return (
     <div className="page" style={{padding: '60px 20px', textAlign: 'center'}}>
       <h1 style={{fontSize: '3rem', marginBottom: '10px'}}>🏠 FamilyFlow</h1>
       <p style={{fontSize: '1.2rem', color: 'var(--text-secondary)', marginBottom: '40px'}}>
         Умный семейный органайзер
       </p>
+      
+      {inviteInfo && (
+        <div style={{background: 'var(--success)', color: 'white', padding: '20px', borderRadius: '8px', marginBottom: '30px'}}>
+          <h3>🎉 Вас приглашают в семью!</h3>
+          <p>Семья: <strong>{decodeURIComponent(inviteInfo.familyName)}</strong></p>
+          <p>Роль: <strong>
+            {inviteInfo.role === 'parent' ? '👨 Родитель' : 
+             inviteInfo.role === 'grandparent' ? '👴 Бабушка/Дедушка' : '👶 Ребёнок'}
+          </strong></p>
+          <p style={{fontSize: '14px', opacity: 0.9}}>Зарегистрируйтесь или войдите, чтобы присоединиться</p>
+        </div>
+      )}
+      
       <div style={{display: 'flex', gap: '15px', justifyContent: 'center', flexWrap: 'wrap'}}>
         <Link to="/login" className="btn btn-primary" style={{width: 'auto', minWidth: '150px'}}>
           Вход
@@ -106,11 +132,29 @@ function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [inviteInfo, setInviteInfo] = useState(null);
+  
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const inviteId = urlParams.get('invite');
+    const familyName = urlParams.get('family');
+    const role = urlParams.get('role');
+    
+    if (inviteId && familyName) {
+      setInviteInfo({ inviteId, familyName, role });
+    }
+  }, []);
 
   const handleRegister = (e) => {
     e.preventDefault();
     try {
       LocalAuth.register(email, password, name);
+      
+      if (inviteInfo) {
+        // Сохраняем информацию о приглашении
+        localStorage.setItem('familyflow_pending_invite', JSON.stringify(inviteInfo));
+      }
+      
       window.location.reload();
     } catch (error) {
       alert('Ошибка регистрации: ' + error.message);
@@ -121,6 +165,13 @@ function RegisterPage() {
     <div className="page">
       <div className="form-container">
         <h2 className="text-center mb-20">Регистрация</h2>
+        
+        {inviteInfo && (
+          <div style={{background: 'var(--success)', color: 'white', padding: '15px', borderRadius: '4px', marginBottom: '20px', textAlign: 'center'}}>
+            <div style={{fontWeight: 'bold'}}>🎉 Приглашение в семью</div>
+            <div style={{fontSize: '14px'}}>{decodeURIComponent(inviteInfo.familyName)}</div>
+          </div>
+        )}
         <form onSubmit={handleRegister}>
           <div className="form-group">
             <input 
@@ -165,6 +216,32 @@ function RegisterPage() {
 function Dashboard() {
   const [weather, setWeather] = useState(null);
   const [location, setLocation] = useState(null);
+
+  useEffect(() => {
+    // Проверяем отложенное приглашение
+    const pendingInvite = localStorage.getItem('familyflow_pending_invite');
+    if (pendingInvite) {
+      const inviteInfo = JSON.parse(pendingInvite);
+      const currentUser = LocalAuth.currentUser;
+      
+      // Присоединяем к семье
+      localStorage.setItem('familyflow_family_name', decodeURIComponent(inviteInfo.familyName));
+      const members = JSON.parse(localStorage.getItem('familyflow_members') || '[]');
+      const newMember = {
+        id: currentUser.id,
+        name: currentUser.name,
+        email: currentUser.email,
+        role: inviteInfo.role,
+        joinedAt: new Date().toISOString(),
+        status: 'active'
+      };
+      members.push(newMember);
+      localStorage.setItem('familyflow_members', JSON.stringify(members));
+      localStorage.removeItem('familyflow_pending_invite');
+      
+      alert(`🎉 Вы успешно присоединились к семье "${decodeURIComponent(inviteInfo.familyName)}"!`);
+    }
+  }, []);
 
   useEffect(() => {
     // Получаем геолокацию и погоду
@@ -1159,7 +1236,8 @@ function FamilyPage() {
       name: currentUser.name,
       email: currentUser.email,
       role: 'parent',
-      joinedAt: new Date().toISOString()
+      joinedAt: new Date().toISOString(),
+      status: 'active'
     }];
     setMembers(initialMembers);
     localStorage.setItem('familyflow_members', JSON.stringify(initialMembers));
@@ -1170,11 +1248,14 @@ function FamilyPage() {
     e.preventDefault();
     if (!newMemberName.trim()) return;
     const selectedRole = document.getElementById('memberRole').value;
+    const inviteId = Date.now();
     const newMember = {
-      id: Date.now(),
+      id: inviteId,
       name: newMemberName,
       role: selectedRole,
-      joinedAt: new Date().toISOString()
+      joinedAt: new Date().toISOString(),
+      inviteLink: `${window.location.origin}?invite=${inviteId}&family=${encodeURIComponent(familyName)}&role=${selectedRole}`,
+      status: 'pending'
     };
     const updatedMembers = [...members, newMember];
     setMembers(updatedMembers);
@@ -1243,21 +1324,51 @@ function FamilyPage() {
                   padding: '15px',
                   background: 'var(--bg-secondary)',
                   borderRadius: 'var(--radius-sm)',
-                  marginBottom: '10px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center'
+                  marginBottom: '10px'
                 }}>
-                  <div>
-                    <div style={{fontWeight: 'bold'}}>{member.name}</div>
-                    <div style={{fontSize: '14px', color: 'var(--text-secondary)'}}>
-                      {member.role === 'parent' ? '👨 Родитель' : 
-                       member.role === 'grandparent' ? '👴 Бабушка/Дедушка' : '👶 Ребёнок'}
-                      {member.email && ` • ${member.email}`}
+                  <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: member.inviteLink ? '10px' : '0'}}>
+                    <div>
+                      <div style={{fontWeight: 'bold'}}>{member.name}</div>
+                      <div style={{fontSize: '14px', color: 'var(--text-secondary)'}}>
+                        {member.role === 'parent' ? '👨 Родитель' : 
+                         member.role === 'grandparent' ? '👴 Бабушка/Дедушка' : '👶 Ребёнок'}
+                        {member.email && ` • ${member.email}`}
+                        {member.status === 'pending' && <span style={{color: 'var(--warning)', marginLeft: '10px'}}>⏳ Ожидает приглашения</span>}
+                      </div>
                     </div>
+                    {member.id === LocalAuth.currentUser?.id && (
+                      <span style={{color: 'var(--primary)', fontWeight: 'bold'}}>Вы</span>
+                    )}
                   </div>
-                  {member.id === LocalAuth.currentUser?.id && (
-                    <span style={{color: 'var(--primary)', fontWeight: 'bold'}}>Вы</span>
+                  
+                  {member.inviteLink && (
+                    <div style={{background: 'var(--bg-primary)', padding: '10px', borderRadius: '4px', fontSize: '12px'}}>
+                      <div style={{marginBottom: '8px', fontWeight: 'bold'}}>🔗 Ссылка-приглашение:</div>
+                      <div style={{display: 'flex', gap: '5px', alignItems: 'center', marginBottom: '8px'}}>
+                        <input 
+                          type="text" 
+                          value={member.inviteLink} 
+                          readOnly 
+                          style={{flex: 1, padding: '4px', fontSize: '11px', border: '1px solid var(--border)', borderRadius: '2px'}}
+                        />
+                        <button 
+                          onClick={() => {
+                            navigator.clipboard.writeText(member.inviteLink);
+                            alert('Ссылка скопирована!');
+                          }}
+                          style={{padding: '4px 8px', fontSize: '11px', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '2px', cursor: 'pointer'}}
+                        >
+                          📋 Копировать
+                        </button>
+                      </div>
+                      <div style={{textAlign: 'center'}}>
+                        <div style={{marginBottom: '5px', fontWeight: 'bold'}}>📱 QR-код:</div>
+                        <div style={{display: 'inline-block', padding: '10px', background: 'white', borderRadius: '4px'}}>
+                          <div style={{width: '100px', height: '100px', background: `url('https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${encodeURIComponent(member.inviteLink)}')`, backgroundSize: 'contain'}}></div>
+                        </div>
+                        <div style={{fontSize: '10px', color: 'var(--text-secondary)', marginTop: '5px'}}>Отсканируйте для быстрого присоединения</div>
+                      </div>
+                    </div>
                   )}
                 </div>
               ))
