@@ -1,33 +1,62 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+const YANDEX_API_KEY = process.env.REACT_APP_YANDEX_API_KEY || '';
+const YANDEX_FOLDER_ID = process.env.REACT_APP_YANDEX_FOLDER_ID || '';
 
-const API_KEY = process.env.REACT_APP_GEMINI_API_KEY || '';
-
-if (!API_KEY) {
-  console.warn('REACT_APP_GEMINI_API_KEY не установлен. Голосовые команды и ИИ не будут работать.');
+if (!YANDEX_API_KEY || !YANDEX_FOLDER_ID) {
+  console.warn('YandexGPT не настроен. Добавьте REACT_APP_YANDEX_API_KEY и REACT_APP_YANDEX_FOLDER_ID');
 }
 
-const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
+async function callYandexGPT(prompt) {
+  const response = await fetch('https://llm.api.cloud.yandex.net/foundationModels/v1/completion', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Api-Key ${YANDEX_API_KEY}`,
+      'x-folder-id': YANDEX_FOLDER_ID
+    },
+    body: JSON.stringify({
+      modelUri: `gpt://${YANDEX_FOLDER_ID}/yandexgpt-lite/latest`,
+      completionOptions: {
+        stream: false,
+        temperature: 0.6,
+        maxTokens: 2000
+      },
+      messages: [
+        {
+          role: 'system',
+          text: 'Ты помощник для семейного органайзера. Отвечай только в формате JSON.'
+        },
+        {
+          role: 'user',
+          text: prompt
+        }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`YandexGPT error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.result.alternatives[0].message.text;
+}
 
 function safeJsonParse(jsonText, fallback) {
   try {
-    const parsed = JSON.parse(jsonText);
-    return parsed;
+    const cleaned = jsonText.replace(/```json\n?|\n?```/g, '').trim();
+    return JSON.parse(cleaned);
   } catch {
     return fallback;
   }
 }
 
 export async function generateTaskFromText(text) {
-  if (!genAI) throw new Error('ИИ не настроен');
+  if (!YANDEX_API_KEY) throw new Error('ИИ не настроен');
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const prompt = `Проанализируй текст и создай задачу в JSON:\n"${text}"\n\nФормат:\n{\n  "title": "название",\n  "description": "описание",\n  "priority": "low/medium/high",\n  "category": "home/work/study/sport/health/other",\n  "estimatedTime": "время"\n}`;
     
-    const prompt = `Проанализируй текст и создай структурированную задачу в JSON формате.\nТекст: "${text}"\n\nВерни JSON с полями:\n{\n  "title": "краткое название задачи",\n  "description": "подробное описание",\n  "priority": "low/medium/high",\n  "category": "home/work/study/sport/health/other",\n  "estimatedTime": "примерное время выполнения"\n}\n\nТолько JSON, без дополнительного текста.`;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const jsonText = response.text().replace(/```json\n?|\n?```/g, '').trim();
-    const parsed = safeJsonParse(jsonText, { title: text.slice(0, 50), description: text, priority: 'medium', category: 'other' });
+    const result = await callYandexGPT(prompt);
+    const parsed = safeJsonParse(result, { title: text.slice(0, 50), description: text, priority: 'medium', category: 'other' });
     return parsed.title ? parsed : { title: 'Задача', description: text, priority: 'medium', category: 'other' };
   } catch (error) {
     console.error('AI Error:', error);
@@ -36,16 +65,12 @@ export async function generateTaskFromText(text) {
 }
 
 export async function suggestTasks(familyContext) {
-  if (!genAI) throw new Error('ИИ не настроен');
+  if (!YANDEX_API_KEY) throw new Error('ИИ не настроен');
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const prompt = `Предложи 3 задачи для семьи. Контекст: ${JSON.stringify(familyContext)}\n\nФормат JSON массив:\n[{"title":"","description":"","priority":"","category":""}]`;
     
-    const prompt = `На основе контекста семьи предложи 3 полезные задачи.\nКонтекст: ${JSON.stringify(familyContext)}\n\nВерни JSON массив задач:\n[\n  {\n    "title": "название",\n    "description": "описание",\n    "priority": "low/medium/high",\n    "category": "home/work/study/sport/health/other"\n  }\n]\n\nТолько JSON массив, без дополнительного текста.`;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const jsonText = response.text().replace(/```json\n?|\n?```/g, '').trim();
-    const parsed = safeJsonParse(jsonText, []);
+    const result = await callYandexGPT(prompt);
+    const parsed = safeJsonParse(result, []);
     return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
     console.error('AI Error:', error);
@@ -54,16 +79,12 @@ export async function suggestTasks(familyContext) {
 }
 
 export async function analyzeProductivity(tasks) {
-  if (!genAI) throw new Error('ИИ не настроен');
+  if (!YANDEX_API_KEY) throw new Error('ИИ не настроен');
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const prompt = `Проанализируй продуктивность. Задачи: ${JSON.stringify(tasks)}\n\nФормат:\n{"score":5,"insights":[""],"recommendations":[""]}`;
     
-    const prompt = `Проанализируй продуктивность на основе задач и дай рекомендации.\nЗадачи: ${JSON.stringify(tasks)}\n\nВерни JSON:\n{\n  "score": "оценка от 1 до 10",\n  "insights": ["инсайт 1", "инсайт 2", "инсайт 3"],\n  "recommendations": ["рекомендация 1", "рекомендация 2"]\n}\n\nТолько JSON, без дополнительного текста.`;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const jsonText = response.text().replace(/```json\n?|\n?```/g, '').trim();
-    const parsed = safeJsonParse(jsonText, { score: 5, insights: ['Анализ недоступен'], recommendations: ['Продолжайте работать'] });
+    const result = await callYandexGPT(prompt);
+    const parsed = safeJsonParse(result, { score: 5, insights: ['Анализ недоступен'], recommendations: ['Продолжайте работать'] });
     return parsed.score ? parsed : { score: 5, insights: ['Анализ недоступен'], recommendations: ['Продолжайте работать'] };
   } catch (error) {
     console.error('AI Error:', error);
@@ -72,16 +93,12 @@ export async function analyzeProductivity(tasks) {
 }
 
 export async function parseVoiceCommand(voiceText) {
-  if (!genAI) throw new Error('ИИ не настроен');
+  if (!YANDEX_API_KEY) throw new Error('ИИ не настроен');
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    const prompt = `Команда: "${voiceText}"\n\nФормат:\n{"action":"task/shopping/calendar","data":{"title":""},"response":""}`;
     
-    const prompt = `Проанализируй голосовую команду и определи действие.\nКоманда: "${voiceText}"\n\nВерни JSON:\n{\n  "action": "task/shopping/calendar/event",\n  "data": {\n    "title": "название",\n    "description": "описание",\n    "priority": "low/medium/high",\n    "category": "home/work/study/sport/health/other",\n    "items": ["элемент1", "элемент2"] // для списка покупок\n  },\n  "response": "текст ответа пользователю"\n}\n\nПримеры:\n- "Добавь молоко и хлеб в список покупок" → action: "shopping", items: ["молоко", "хлеб"]\n- "Создай задачу убрать квартиру" → action: "task", title: "Убрать квартиру"\n- "Напомни завтра в 10 утра о встрече" → action: "calendar"\n\nТолько JSON, без дополнительного текста.`;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const jsonText = response.text().replace(/```json\n?|\n?```/g, '').trim();
-    const parsed = safeJsonParse(jsonText, { action: 'task', data: { title: voiceText }, response: 'Команда обработана' });
+    const result = await callYandexGPT(prompt);
+    const parsed = safeJsonParse(result, { action: 'task', data: { title: voiceText }, response: 'Команда обработана' });
     return parsed.action ? parsed : { action: 'task', data: { title: voiceText }, response: 'Команда обработана' };
   } catch (error) {
     console.error('AI Error:', error);
