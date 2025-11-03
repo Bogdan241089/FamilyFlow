@@ -1139,6 +1139,123 @@ function AIAssistantPage() {
   );
 }
 
+function FamilyPage() {
+  const [familyName, setFamilyName] = useState(localStorage.getItem('familyflow_family_name') || '');
+  const [members, setMembers] = useState(JSON.parse(localStorage.getItem('familyflow_members') || '[]'));
+  const [newMemberName, setNewMemberName] = useState('');
+  const [showCreateFamily, setShowCreateFamily] = useState(!familyName);
+
+  const createFamily = (e) => {
+    e.preventDefault();
+    if (!familyName.trim()) return;
+    localStorage.setItem('familyflow_family_name', familyName);
+    const currentUser = LocalAuth.currentUser;
+    const initialMembers = [{
+      id: currentUser.id,
+      name: currentUser.name,
+      email: currentUser.email,
+      role: 'parent',
+      joinedAt: new Date().toISOString()
+    }];
+    setMembers(initialMembers);
+    localStorage.setItem('familyflow_members', JSON.stringify(initialMembers));
+    setShowCreateFamily(false);
+  };
+
+  const addMember = (e) => {
+    e.preventDefault();
+    if (!newMemberName.trim()) return;
+    const newMember = {
+      id: Date.now(),
+      name: newMemberName,
+      role: 'child',
+      joinedAt: new Date().toISOString()
+    };
+    const updatedMembers = [...members, newMember];
+    setMembers(updatedMembers);
+    localStorage.setItem('familyflow_members', JSON.stringify(updatedMembers));
+    setNewMemberName('');
+  };
+
+  return (
+    <div className="page" style={{padding: '20px'}}>
+      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px'}}>
+        <h1>👨‍👩‍👧‍👦 Управление семьёй</h1>
+        <Link to="/dashboard" className="btn btn-secondary">← Назад</Link>
+      </div>
+      
+      {showCreateFamily ? (
+        <div className="card">
+          <h3>Создать семью</h3>
+          <form onSubmit={createFamily}>
+            <input
+              type="text"
+              placeholder="Название семьи"
+              value={familyName}
+              onChange={(e) => setFamilyName(e.target.value)}
+              className="form-input"
+              style={{marginBottom: '15px'}}
+            />
+            <button type="submit" className="btn btn-primary">Создать семью</button>
+          </form>
+        </div>
+      ) : (
+        <>
+          <div className="card" style={{marginBottom: '20px'}}>
+            <h3>Семья: {familyName}</h3>
+            <p>Участников: {members.length}</p>
+          </div>
+          
+          <div className="card" style={{marginBottom: '20px'}}>
+            <h3>Добавить участника</h3>
+            <form onSubmit={addMember} style={{display: 'flex', gap: '10px'}}>
+              <input
+                type="text"
+                placeholder="Имя участника"
+                value={newMemberName}
+                onChange={(e) => setNewMemberName(e.target.value)}
+                className="form-input"
+                style={{flex: 1}}
+              />
+              <button type="submit" className="btn btn-primary" style={{width: 'auto', padding: '12px 20px'}}>Добавить</button>
+            </form>
+          </div>
+          
+          <div className="card">
+            <h3>Участники семьи</h3>
+            {members.length === 0 ? (
+              <p style={{color: 'var(--text-secondary)'}}>Нет участников</p>
+            ) : (
+              members.map(member => (
+                <div key={member.id} style={{
+                  padding: '15px',
+                  background: 'var(--bg-secondary)',
+                  borderRadius: 'var(--radius-sm)',
+                  marginBottom: '10px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <div>
+                    <div style={{fontWeight: 'bold'}}>{member.name}</div>
+                    <div style={{fontSize: '14px', color: 'var(--text-secondary)'}}>
+                      {member.role === 'parent' ? 'Родитель' : 'Ребёнок'}
+                      {member.email && ` • ${member.email}`}
+                    </div>
+                  </div>
+                  {member.id === LocalAuth.currentUser?.id && (
+                    <span style={{color: 'var(--primary)', fontWeight: 'bold'}}>Вы</span>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 function AnalyticsPage() {
   const tasks = JSON.parse(localStorage.getItem('familyflow_tasks') || '[]');
   const messages = JSON.parse(localStorage.getItem('familyflow_messages') || '[]');
@@ -1337,7 +1454,8 @@ function App() {
           <Route path="/calendar" element={user ? <CalendarPage /> : <Navigate to="/" />} />
           <Route path="/chat" element={user ? <ChatPage /> : <Navigate to="/" />} />
           <Route path="/analytics" element={user ? <AnalyticsPage /> : <Navigate to="/" />} />
-        <Route path="/ai-assistant" element={user ? <AIAssistantPage /> : <Navigate to="/" />} />
+          <Route path="/ai-assistant" element={user ? <AIAssistantPage /> : <Navigate to="/" />} />
+          <Route path="/family" element={user ? <FamilyPage /> : <Navigate to="/" />} />
         </Routes>
       </Router>
     </div>
